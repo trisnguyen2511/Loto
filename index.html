@@ -23,7 +23,7 @@
         .dark-mode { 
             --bg-app: #09090b; 
             --text-main: #f4f4f5; 
-            --card-bg: #27272a; /* Thẻ sáng hơn một chút ở theme tối theo yêu cầu */
+            --card-bg: #27272a; 
             --border-card: #3f3f46;
             --border-app: #27272a;
         }
@@ -65,7 +65,10 @@
         select { color: #000 !important; background-color: #fff !important; }
         .genre-select { color: #fff !important; background-color: #991b1b !important; }
 
-        /* Đảm bảo nội dung không dính sát viền trên iPhone */
+        .length-bar { width: 3px; border-radius: 10px; margin-right: 1px; transition: 0.3s; }
+        .bar-inactive { background-color: rgba(156, 163, 175, 0.3); }
+        .bar-active { background-color: #ef4444; }
+
         .pt-safe { padding-top: env(safe-area-inset-top); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
@@ -131,7 +134,6 @@
                 <h2 class="text-base font-bold tracking-wide">HỆ THỐNG</h2>
             </header>
             <main class="p-5 space-y-4 pb-32 overflow-y-auto">
-                
                 <div class="p-5 rounded-2xl app-card shadow-sm border border-[var(--border-card)]">
                     <label class="block text-[10px] font-black mb-4 uppercase opacity-50 text-[var(--text-main)] text-center tracking-widest">CỠ CHỮ SÂN KHẤU</label>
                     <div class="flex justify-center gap-6 mb-5">
@@ -153,7 +155,7 @@
                             <span class="text-lg">🎵</span><span>XÓA CACHE NHẠC</span>
                         </button>
                     </div>
-                    <p id="wakelockStatus" class="text-[9px] text-emerald-500 font-bold mt-3 text-center uppercase tracking-tighter">Đang kích hoạt chế độ chống tắt màn hình ⚡</p>
+                    <p id="wakelockStatus" class="text-[9px] text-emerald-500 font-bold mt-3 text-center uppercase tracking-tighter">WakeLock Active ⚡</p>
                 </div>
 
                 <div class="p-4 rounded-2xl app-card shadow-sm">
@@ -199,7 +201,7 @@
             <button onclick="setMode('all')" id="nav-all" class="flex flex-col items-center w-1/3 py-2 text-red-600 transition-all">
                 <span class="text-xl mb-1">🎶</span><span class="text-[9px] font-black uppercase tracking-tight">Tất cả</span>
             </button>
-            <button onclick="setMode('fav')" id="nav-fav" class="flex flex-col items-center w-1/3 py-2 text-gray-400 transition-all">
+            <button onclick="setMode('fav')" id="nav-fav" class="flex flex-col items-center w-1/3 py-2 text-red-600 transition-all">
                 <span class="text-xl mb-1">❤️</span><span class="text-[9px] font-black uppercase tracking-tight">Yêu thích</span>
             </button>
             <button onclick="showScreen('settings-screen')" class="flex flex-col items-center w-1/3 py-2 text-gray-400 transition-all">
@@ -209,35 +211,19 @@
     </div>
 
     <script>
-        // --- SERVICE WORKER ---
+        // --- CORE LOGIC ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(err => {}));
         }
 
-        // --- WAKE LOCK LOGIC (CHỐNG TẮT MÀN HÌNH) ---
         let wakeLock = null;
         async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    document.getElementById('wakelockStatus').innerText = "Đang kích hoạt chế độ chống tắt màn hình ⚡";
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake Lock was released');
-                    });
-                }
-            } catch (err) {
-                document.getElementById('wakelockStatus').innerText = "Thiết bị không hỗ trợ WakeLock ⚠️";
-            }
+            try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) {}
         }
-
-        // Tự động xin lại WakeLock khi quay lại App
         document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                await requestWakeLock();
-            }
+            if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
         });
 
-        // --- APP STATE ---
         let allSongs = [];
         let favorites = JSON.parse(localStorage.getItem('loto_favs')) || [];
         let calledSongs = JSON.parse(localStorage.getItem('loto_called')) || [];
@@ -246,8 +232,8 @@
         let isDarkMode = localStorage.getItem('loto_dark') === 'true';
         let currentMode = 'all';
         let currentSongNum = null;
+        let avgLyricsLength = 0;
 
-        // Init UI
         if(isDarkMode) { document.body.classList.add('dark-mode'); document.getElementById('darkModeToggle').checked = true; }
         document.getElementById('fontPreview').style.fontSize = fontSize + 'px';
         
@@ -256,34 +242,15 @@
             numBtnContainer.innerHTML += `<button onclick="filterByDigit('${i}', this)" class="btn-number bg-yellow-400 text-red-800 font-black p-1.5 shadow-sm text-[13px]">${i}</button>`;
         }
 
-        // --- NAVIGATION LOGIC (BACK BUTTON) ---
         function showScreen(id, pushState = true) { 
             ['list-screen','detail-screen','settings-screen'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
-            window.scrollTo(0,0);
-            
-            // Xử lý Lịch sử trình duyệt để hỗ trợ nút Back di động
-            if (pushState && id !== 'list-screen') {
-                history.pushState({ screen: id }, "");
-            }
-            
-            // Kích hoạt WakeLock khi vào màn hình chi tiết hoặc cài đặt
+            if (pushState && id !== 'list-screen') history.pushState({ screen: id }, "");
             requestWakeLock();
         }
 
-        // Xử lý khi người dùng bấm nút Back vật lý hoặc vuốt Back
-        window.onpopstate = function(event) {
-            showScreen('list-screen', false); 
-            renderList();
-        };
-
-        function handleBackAction() {
-            if (history.state && history.state.screen) {
-                history.back(); // Quay lại trang trước trong lịch sử
-            } else {
-                showScreen('list-screen', false);
-            }
-        }
+        window.onpopstate = function() { showScreen('list-screen', false); renderList(); };
+        function handleBackAction() { if (history.state && history.state.screen) history.back(); else showScreen('list-screen', false); }
 
         async function loadSongs(forceRefresh = false) {
             try {
@@ -292,12 +259,19 @@
                 const text = await res.text();
                 const rows = text.split('\n').slice(1);
                 const genres = new Set();
+                let totalLen = 0;
+
                 allSongs = rows.filter(r => r.trim()).map(r => {
                     const c = r.split(',');
                     if (c[3]) genres.add(c[3].trim());
-                    return { number: c[0]?.trim(), title: c[1]?.trim(), lyrics: c[2]?.trim(), genre: c[3]?.trim() || 'Khác' };
+                    const lyricText = c[2]?.trim() || "";
+                    const wordCount = lyricText.split(/\s+/).length;
+                    totalLen += wordCount;
+                    return { number: c[0]?.trim(), title: c[1]?.trim(), lyrics: lyricText, genre: c[3]?.trim() || 'Khác', wordCount: wordCount };
                 });
                 
+                avgLyricsLength = allSongs.length > 0 ? totalLen / allSongs.length : 0;
+
                 const genreSelect = document.getElementById('genreFilter');
                 genreSelect.innerHTML = '<option value="">Tất cả loại</option>'; 
                 genres.forEach(g => genreSelect.innerHTML += `<option value="${g}">${g}</option>`);
@@ -305,28 +279,49 @@
             } catch (e) {}
         }
 
-        // --- CACHE & HARD RESET ---
-        async function refreshLyricsCache() {
-            if ('caches' in window) {
-                await caches.delete('loto-data-v1');
-                loadSongs(true); 
+        // --- HÀM XỬ LÝ LYRIC THÔNG MINH (ĐẦU ... 3 CHỮ CUỐI) ---
+        function getSmartSnippet(text) {
+            const cleanText = text.replace(/\\n/g, ' ').trim();
+            const words = cleanText.split(/\s+/);
+            
+            // Nếu lyric quá ngắn (dưới 12 từ) thì hiện toàn bộ
+            if (words.length <= 12) return `"${cleanText}"`;
+
+            // Lấy khoảng 45 ký tự đầu
+            const startPart = cleanText.substring(0, 45);
+            // Lấy 3 từ cuối cùng
+            const lastThreeWords = words.slice(-3).join(' ');
+            
+            return `"${startPart}... ${lastThreeWords}"`;
+        }
+
+        function getLengthRatingUI(count) {
+            let rating = 1;
+            if (count > avgLyricsLength * 1.4) rating = 5;
+            else if (count > avgLyricsLength * 1.1) rating = 4;
+            else if (count > avgLyricsLength * 0.9) rating = 3;
+            else if (count > avgLyricsLength * 0.6) rating = 2;
+
+            let html = '<div class="flex items-end h-3 mb-0.5">';
+            for (let i = 1; i <= 5; i++) {
+                const height = i * 20 + 20; 
+                const activeClass = i <= rating ? 'bar-active' : 'bar-inactive';
+                html += `<div class="length-bar ${activeClass}" style="height: ${height}%"></div>`;
             }
+            html += '</div>';
+            return html;
         }
-        async function refreshMusicCache() {
-            if ('caches' in window) await caches.delete('loto-music-v1');
-        }
+
+        async function refreshLyricsCache() { if ('caches' in window) { await caches.delete('loto-data-v1'); loadSongs(true); } }
+        async function refreshMusicCache() { if ('caches' in window) await caches.delete('loto-music-v1'); }
         async function hardRefreshApp() {
-            if (confirm("⚠️ CẢNH BÁO: Thao tác này sẽ xóa toàn bộ bài Đã gọi, Yêu thích, Ghi chú và Tải lại App. Bạn có chắc chắn không?")) {
+            if (confirm("⚠️ CẢNH BÁO: Xóa toàn bộ dữ liệu và tải lại App?")) {
                 localStorage.clear();
-                if ('caches' in window) {
-                    const keys = await caches.keys();
-                    for (let key of keys) await caches.delete(key);
-                }
+                if ('caches' in window) { const keys = await caches.keys(); for (let key of keys) await caches.delete(key); }
                 window.location.reload(true);
             }
         }
 
-        // --- LIST RENDERING ---
         function renderList(filteredData = null) {
             const container = document.getElementById('songList');
             const genre = document.getElementById('genreFilter').value;
@@ -345,12 +340,20 @@
                 <div class="song-card app-card ${isCalled ? 'called' : ''} ${hideClass} flex items-stretch relative">
                     <div onclick="openSong('${song.number}')" class="flex-1 p-4 cursor-pointer overflow-hidden">
                         <div class="flex justify-between items-start mb-2 relative">
-                            <p class="text-[15px] font-bold leading-snug pr-12 text-[var(--text-main)] italic line-clamp-2 break-words">"${song.lyrics.replace(/\\n/g, ' ')}"</p>
+                            <p class="text-[14px] font-bold leading-tight pr-10 text-[var(--text-main)] italic break-words">
+                                ${getSmartSnippet(song.lyrics)}
+                            </p>
                             <span class="absolute top-0 right-0 text-emerald-500 font-black text-[9px] tracking-tight bg-[var(--card-bg)] pl-1 ${isCalled ? '' : 'hidden'}">✓ ĐÃ GỌI</span>
                         </div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-[10px] font-black text-white bg-red-600 shadow-sm dark:bg-red-900/60 dark:text-red-300 px-2 py-0.5 rounded uppercase">Số ${song.number}</span>
-                            <span class="text-[10px] font-bold opacity-60 uppercase truncate tracking-tight text-gray-700 dark:text-gray-400">${song.title}</span>
+                        <div class="flex items-center justify-between mt-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black text-white bg-red-600 shadow-sm px-2 py-0.5 rounded uppercase">Số ${song.number}</span>
+                                <span class="text-[10px] font-bold opacity-60 uppercase truncate max-w-[120px] text-gray-700 dark:text-gray-400">${song.title}</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                ${getLengthRatingUI(song.wordCount)}
+                                <span class="text-[7px] font-black opacity-40 uppercase">Lyrics</span>
+                            </div>
                         </div>
                     </div>
                     <button onclick="toggleFavorite('${song.number}')" class="w-12 flex items-center justify-center text-xl border-l border-[var(--border-card)]">
@@ -360,11 +363,9 @@
             }).join('');
         }
 
+        // --- CÁC HÀM CÒN LẠI GIỮ NGUYÊN ---
         function openSong(num) {
-            if (!calledSongs.includes(num)) {
-                calledSongs.push(num);
-                localStorage.setItem('loto_called', JSON.stringify(calledSongs));
-            }
+            if (!calledSongs.includes(num)) { calledSongs.push(num); localStorage.setItem('loto_called', JSON.stringify(calledSongs)); }
             currentSongNum = num;
             const s = allSongs.find(x => x.number === num);
             document.getElementById('detailTitle').innerText = `SỐ ${s.number} - ${s.title}`;
@@ -372,36 +373,24 @@
             document.getElementById('detailLyrics').innerText = s.lyrics.replace(/\\n/g, '\n');
             document.getElementById('detailLyrics').style.fontSize = fontSize + 'px';
             document.getElementById('noteInput').value = notes[num] || '';
-            
-            updatePillUI();
-            updateFavBtnUI();
-            showScreen('detail-screen');
+            updatePillUI(); updateFavBtnUI(); showScreen('detail-screen');
         }
 
         function manualToggleCalled() {
-            if (calledSongs.includes(currentSongNum)) {
-                calledSongs = calledSongs.filter(n => n !== currentSongNum);
-            } else {
-                calledSongs.push(currentSongNum);
-            }
-            localStorage.setItem('loto_called', JSON.stringify(calledSongs));
-            updatePillUI();
+            calledSongs = calledSongs.includes(currentSongNum) ? calledSongs.filter(n => n !== currentSongNum) : [...calledSongs, currentSongNum];
+            localStorage.setItem('loto_called', JSON.stringify(calledSongs)); updatePillUI();
         }
 
         function updatePillUI() {
             const btn = document.getElementById('calledBtnPill');
-            if (calledSongs.includes(currentSongNum)) {
-                btn.classList.add('active'); btn.innerText = "Đã gọi";
-            } else {
-                btn.classList.remove('active'); btn.innerText = "Chưa gọi";
-            }
+            const active = calledSongs.includes(currentSongNum);
+            btn.classList.toggle('active', active); btn.innerText = active ? "Đã gọi" : "Chưa gọi";
         }
 
         function changeFontSize(delta) {
             fontSize = Math.max(14, Math.min(45, fontSize + delta));
             document.getElementById('fontPreview').style.fontSize = fontSize + 'px';
-            const detailLyrics = document.getElementById('detailLyrics');
-            if(detailLyrics) detailLyrics.style.fontSize = fontSize + 'px';
+            if(document.getElementById('detailLyrics')) document.getElementById('detailLyrics').style.fontSize = fontSize + 'px';
             localStorage.setItem('loto_fontsize', fontSize);
         }
 
@@ -419,8 +408,7 @@
         }
 
         function toggleDarkMode() {
-            isDarkMode = !isDarkMode;
-            localStorage.setItem('loto_dark', isDarkMode);
+            isDarkMode = !isDarkMode; localStorage.setItem('loto_dark', isDarkMode);
             document.body.classList.toggle('dark-mode');
         }
 
@@ -432,8 +420,7 @@
             currentMode = m; 
             document.getElementById('nav-all').className = m === 'all' ? 'flex flex-col items-center w-1/3 py-2 text-red-600' : 'flex flex-col items-center w-1/3 py-2 text-gray-400';
             document.getElementById('nav-fav').className = m === 'fav' ? 'flex flex-col items-center w-1/3 py-2 text-red-600' : 'flex flex-col items-center w-1/3 py-2 text-gray-400';
-            showScreen('list-screen', false); 
-            renderList();
+            showScreen('list-screen', false); renderList();
         }
 
         function saveNote() { notes[currentSongNum] = document.getElementById('noteInput').value; localStorage.setItem('loto_notes', JSON.stringify(notes)); }
