@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Loto Pro - Stage Edition</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lô Tô Pro">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { 
@@ -24,7 +31,6 @@
         body { background-color: #e5e5e5; color: var(--text-main); transition: background-color 0.3s; }
         .dark-mode body { background-color: #000000; }
 
-        /* Container chính với Border chuyên nghiệp */
         #app {
             background-color: var(--bg-app);
             border-left: 1px solid var(--border-app);
@@ -33,56 +39,29 @@
         }
 
         .app-card { background-color: var(--card-bg); border: 1px solid var(--border-card); }
-        
-        /* Viền thẻ bài hát mềm mại */
-        .song-card { 
-            border-radius: 16px; 
-            transition: all 0.2s ease;
-        }
+        .song-card { border-radius: 16px; transition: all 0.2s ease; }
         .song-card:active { transform: scale(0.98); }
-
-        /* Trạng thái Đã gọi */
         .song-card.called { opacity: 0.55; filter: grayscale(0.7); }
         .song-card.called-hidden { display: none !important; }
 
-        /* Nút TẤT CẢ và Số */
         .btn-all { height: 100%; width: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; border-radius: 10px; }
         .btn-number { border-radius: 10px; transition: 0.2s; }
         .btn-number.active { background-color: #ef4444 !important; color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
 
-        /* Nút Chỉnh Font */
         .control-btn { background-color: #334155; color: white; border-radius: 14px; font-weight: bold; font-size: 1.1rem; transition: 0.2s; }
         .control-btn:active { transform: scale(0.9); }
         
-        /* Dropdown thể loại (chuẩn UI cũ) */
         .genre-select {
-            background-color: #991b1b; /* Đỏ đô */
-            color: white;
-            border: 1px solid #7f1d1d;
+            background-color: #991b1b; color: white; border: 1px solid #7f1d1d;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 0.5rem center;
-            background-size: 1.5em 1.5em;
+            background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.5em 1.5em;
         }
 
-        /* Nút ĐÃ GỌI kiểu viên thuốc */
-        .pill-called {
-            border: 1.5px solid white;
-            padding: 4px 14px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: bold;
-            transition: 0.3s;
-        }
+        .pill-called { border: 1.5px solid white; padding: 4px 14px; border-radius: 999px; font-size: 11px; font-weight: bold; transition: 0.3s; }
         .pill-called.active { background-color: white; color: #ef4444; }
 
-        /* Animation cho Lời bài hát */
-        #detailLyrics {
-            transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: font-size;
-        }
+        #detailLyrics { transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1); will-change: font-size; }
 
-        /* Fix hiển thị màu setting */
         .setting-item { color: #1a1a1a !important; font-weight: 600; }
         .dark-mode .setting-item { color: #ffffff !important; }
         select { color: #000 !important; background-color: #fff !important; }
@@ -95,8 +74,7 @@
         
         <div id="list-screen" class="flex flex-col h-screen overflow-hidden">
             <header class="p-4 pb-6 bg-red-600 text-white shadow-md z-10">
-                <div class="flex justify-between items-center mb-3">
-                    <h1 class="text-xl font-black italic tracking-tighter uppercase">Lô Tô Pro</h1>
+                <div class="flex justify-between items-center mb-3 pt-safe"> <h1 class="text-xl font-black italic tracking-tighter uppercase">Lô Tô Pro</h1>
                     <div class="flex gap-2">
                         <button onclick="toggleGlobalMusic()" id="globalPlayBtn" class="bg-white/20 p-2 rounded-full w-9 h-9 flex items-center justify-center text-lg">▶</button>
                         <button onclick="showScreen('settings-screen')" class="bg-white/20 p-2 rounded-full w-9 h-9 flex items-center justify-center text-lg">⚙️</button>
@@ -104,10 +82,8 @@
                 </div>
                 
                 <div class="flex gap-2 mb-4">
-                    <input type="text" id="searchInput" placeholder="Tìm theo tên, lời, số..." 
-                        class="flex-[2] p-2.5 rounded-xl text-gray-900 bg-white outline-none shadow-sm font-semibold text-[13px]">
-                    <select id="genreFilter" onchange="renderList()" 
-                        class="genre-select flex-1 p-2.5 rounded-xl outline-none shadow-sm font-bold text-[12px] appearance-none">
+                    <input type="text" id="searchInput" placeholder="Tìm theo tên, lời, số..." class="flex-[2] p-2.5 rounded-xl text-gray-900 bg-white outline-none shadow-sm font-semibold text-[13px]">
+                    <select id="genreFilter" onchange="renderList()" class="genre-select flex-1 p-2.5 rounded-xl outline-none shadow-sm font-bold text-[12px] appearance-none">
                         <option value="">Tất cả loại</option>
                     </select>
                 </div>
@@ -120,12 +96,11 @@
                 </div>
             </header>
 
-            <main id="songList" class="flex-1 overflow-y-auto p-3 space-y-2.5 pb-28">
-                </main>
+            <main id="songList" class="flex-1 overflow-y-auto p-3 space-y-2.5 pb-28"></main>
         </div>
 
         <div id="detail-screen" class="hidden absolute inset-0 z-20 flex flex-col bg-[var(--bg-app)]">
-            <header class="p-4 flex justify-between items-center bg-red-600 text-white shadow-md">
+            <header class="p-4 flex justify-between items-center bg-red-600 text-white shadow-md pt-safe">
                 <button onclick="goBack()" class="font-bold p-2 text-2xl">←</button>
                 <div class="flex flex-col items-center flex-1 truncate px-2 text-center">
                     <h2 id="detailTitle" class="text-[13px] font-black truncate w-full uppercase tracking-wide">SỐ 05 - CHIẾC XUỒNG</h2>
@@ -147,18 +122,31 @@
                 
                 <div class="mt-12 border-t pt-6 border-[var(--border-app)]">
                     <label class="block text-[10px] font-black text-red-600 mb-2 uppercase italic tracking-widest">Ghi chú cá nhân</label>
-                    <textarea id="noteInput" oninput="saveNote()" 
-                        class="w-full p-4 rounded-2xl border border-[var(--border-card)] bg-[var(--card-bg)] text-[var(--text-main)] outline-none h-32 shadow-inner font-medium focus:border-red-400 transition-colors"></textarea>
+                    <textarea id="noteInput" oninput="saveNote()" class="w-full p-4 rounded-2xl border border-[var(--border-card)] bg-[var(--card-bg)] text-[var(--text-main)] outline-none h-32 shadow-inner font-medium focus:border-red-400 transition-colors"></textarea>
                 </div>
             </main>
         </div>
 
         <div id="settings-screen" class="hidden absolute inset-0 z-30 flex flex-col bg-[var(--bg-app)]">
-            <header class="p-4 flex items-center bg-gray-900 text-white shadow-md">
+            <header class="p-4 flex items-center bg-gray-900 text-white shadow-md pt-safe">
                 <button onclick="showScreen('list-screen')" class="font-bold mr-4 text-xl p-2">←</button>
                 <h2 class="text-base font-bold tracking-wide">HỆ THỐNG</h2>
             </header>
-            <main class="p-5 space-y-4">
+            <main class="p-5 space-y-4 pb-28 overflow-y-auto">
+                
+                <div class="p-5 rounded-2xl app-card shadow-sm border border-emerald-500/30">
+                    <label class="block text-[10px] font-black text-emerald-600 mb-3 uppercase italic tracking-widest">Quản lý Dữ Liệu Offline</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="refreshLyricsCache()" class="p-3 bg-purple-600 text-white rounded-xl font-black text-[11px] shadow-md active:scale-95 transition-all flex flex-col items-center gap-1">
+                            <span class="text-lg">☁️</span><span>LÀM MỚI LỜI</span>
+                        </button>
+                        <button onclick="refreshMusicCache()" class="p-3 bg-teal-600 text-white rounded-xl font-black text-[11px] shadow-md active:scale-95 transition-all flex flex-col items-center gap-1">
+                            <span class="text-lg">🎵</span><span>XÓA CACHE NHẠC</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-gray-500 font-medium mt-3 text-center">Bật mạng và mở bài hát 1 lần để máy lưu cache tự động.</p>
+                </div>
+
                 <div class="p-4 rounded-2xl app-card shadow-sm">
                     <label class="block text-[10px] font-black mb-2 uppercase opacity-50 text-gray-600">Nhạc nền sân khấu</label>
                     <select id="bgMusicSelect" onchange="changeGlobalMusic()" class="w-full p-2.5 rounded-xl border border-gray-200 font-bold text-[13px] outline-none">
@@ -178,7 +166,7 @@
                     <input type="checkbox" id="hideCalledToggle" onchange="renderList()" class="w-5 h-5 rounded">
                 </div>
 
-                <div class="grid grid-cols-1 gap-3 mt-6">
+                <div class="grid grid-cols-1 gap-3 mt-4">
                     <button onclick="clearCalledCache()" class="w-full p-4 bg-blue-600 text-white rounded-2xl font-black text-[13px] text-left shadow-md active:scale-95 transition-all flex justify-between items-center">
                         <span>RESET BÀI ĐÃ GỌI</span><span>♻️</span>
                     </button>
@@ -192,7 +180,7 @@
             </main>
         </div>
 
-        <nav class="fixed bottom-0 max-w-md w-full border-t flex justify-around p-1.5 bg-[var(--card-bg)] z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] rounded-t-[24px] border-[var(--border-card)]">
+        <nav class="fixed bottom-0 max-w-md w-full border-t flex justify-around p-1.5 bg-[var(--card-bg)] z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] rounded-t-[24px] border-[var(--border-card)] pb-safe">
             <button onclick="setMode('all')" id="nav-all" class="flex flex-col items-center w-1/3 py-2 text-red-600 transition-all">
                 <span class="text-xl mb-1">🎶</span><span class="text-[9px] font-black uppercase tracking-tight">Tất cả</span>
             </button>
@@ -206,6 +194,15 @@
     </div>
 
     <script>
+        // ĐĂNG KÝ SERVICE WORKER (Bộ não Offline)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Bật chế độ Offline thành công!'))
+                    .catch(err => console.error('Lỗi Offline:', err));
+            });
+        }
+
         let allSongs = [];
         let favorites = JSON.parse(localStorage.getItem('loto_favs')) || [];
         let calledSongs = JSON.parse(localStorage.getItem('loto_called')) || [];
@@ -222,9 +219,11 @@
             numBtnContainer.innerHTML += `<button onclick="filterByDigit('${i}', this)" class="btn-number bg-yellow-400 text-red-800 font-black p-1.5 shadow-sm text-[13px]">${i}</button>`;
         }
 
-        async function loadSongs() {
+        async function loadSongs(forceRefresh = false) {
             try {
-                const res = await fetch('songs.csv?t=' + Date.now());
+                // Nếu forceRefresh, thêm Date.now() để bắt tải mới từ server, nếu không thì lấy cache
+                const url = forceRefresh ? 'songs.csv?' + Date.now() : 'songs.csv';
+                const res = await fetch(url);
                 const text = await res.text();
                 const rows = text.split('\n').slice(1);
                 const genres = new Set();
@@ -233,11 +232,36 @@
                     if (c[3]) genres.add(c[3].trim());
                     return { number: c[0]?.trim(), title: c[1]?.trim(), lyrics: c[2]?.trim(), genre: c[3]?.trim() || 'Khác' };
                 });
+                
                 const genreSelect = document.getElementById('genreFilter');
+                genreSelect.innerHTML = '<option value="">Tất cả loại</option>'; // Reset
                 genres.forEach(g => genreSelect.innerHTML += `<option value="${g}">${g}</option>`);
                 renderList();
-            } catch (e) { console.error("CSV error"); }
+            } catch (e) { 
+                console.error("Lỗi tải CSV: Bạn đang offline và chưa có cache mạng"); 
+            }
         }
+
+        // --- CÁC HÀM XỬ LÝ CACHE MỚI ---
+        async function refreshLyricsCache() {
+            if (!navigator.onLine) {
+                alert("Bạn cần kết nối mạng để làm mới lời bài hát!");
+                return;
+            }
+            if ('caches' in window) {
+                await caches.delete('loto-data-v1');
+                alert("Đã xóa dữ liệu cũ. Đang tải lời bài hát mới nhất...");
+                loadSongs(true); // Cập nhật lại
+            }
+        }
+
+        async function refreshMusicCache() {
+            if ('caches' in window) {
+                await caches.delete('loto-music-v1');
+                alert("Đã xóa toàn bộ bộ nhớ Cache Nhạc! Bạn sẽ cần mạng để tải lại khi nghe.");
+            }
+        }
+        // -------------------------------
 
         function renderList(filteredData = null) {
             const container = document.getElementById('songList');
@@ -258,8 +282,7 @@
                     <div onclick="openSong('${song.number}')" class="flex-1 p-4 cursor-pointer overflow-hidden">
                         <div class="flex justify-between items-start mb-2 relative">
                             <p class="text-[15px] font-bold leading-snug pr-12 text-[var(--text-main)] italic line-clamp-2 break-words">"${song.lyrics.replace(/\\n/g, ' ')}"</p>
-                            
-                            <span class="absolute top-0 right-0 text-emerald-500 font-black text-[9px] tracking-tight bg-white dark:bg-[#18181b] pl-1 ${isCalled ? '' : 'hidden'}">✓ ĐÃ GỌI</span>
+                            <span class="absolute top-0 right-0 text-emerald-500 font-black text-[9px] tracking-tight bg-[var(--card-bg)] pl-1 ${isCalled ? '' : 'hidden'}">✓ ĐÃ GỌI</span>
                         </div>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="text-[10px] font-black text-white bg-red-600 shadow-sm dark:bg-red-900/60 dark:text-red-300 px-2 py-0.5 rounded uppercase">Số ${song.number}</span>
