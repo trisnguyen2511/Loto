@@ -1,0 +1,11 @@
+{
+  "name": "Loto Stage Pro",
+  "short_name": "LotoStage",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#ef4444",
+  "icons": [
+    { "src": "https://cdn-icons-png.flaticon.com/512/2164/2164581.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
